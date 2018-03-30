@@ -3,7 +3,7 @@ import os
 
 from django.db import models
 from django.conf import settings
-
+from django.utils.safestring import mark_safe
 #from django.conf.settings import AUTH_USER_MODEL as User
 from django.db.models import CharField, Model, ForeignKey, DateTimeField, DecimalField, IntegerField, ImageField, BooleanField
 
@@ -41,7 +41,10 @@ class WechatGroup(Model):
         return self.title
 
     def image_tag(self):
-        return '<img src="%s" />' % self.image.url
+        return mark_safe('<img style="width:100px;" src="%s" />' % self.image.url)
+
+    image_tag.short_description = 'Image'
+    image_tag.allow_tags = True
 
 def get_upload_qr_path(instance, fname):
     author_id = '0'
@@ -50,7 +53,7 @@ def get_upload_qr_path(instance, fname):
         _id = instance.wechatgroup.id
         if instance.wechatgroup.user:
             user_id = instance.wechatgroup.user.id
-    return os.path.join('products', str(user_id), str(_id), fname)
+    return os.path.join('qr', str(user_id), str(_id), fname)
 
 class QR(Model):
     title = CharField(max_length=128, null=True, blank=True)

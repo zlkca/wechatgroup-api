@@ -18,13 +18,19 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 cfg = None
 try:
-    f = open(os.path.join(os.path.dirname(BASE_DIR), 'adweb.config.json'), 'r')
+    f = open(os.path.join(os.path.dirname(BASE_DIR), 'wechatgroup.config.json'), 'r')
     cfg = json.load(f)
     f.close()
 except Exception as e:
     pass
 
-AUTH_USER_MODEL = 'account.User'
+APP_DOMAIN = cfg["APP_DOMAIN"]
+API_DOMAIN = cfg["API_DOMAIN"]
+API_PORT = str(cfg['API_PORT'])
+
+if cfg['ENV'] == 'production':
+    APP_DOMAIN_ALIAS = 'www.' + APP_DOMAIN
+    
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/2.0/howto/deployment/checklist/
@@ -33,10 +39,21 @@ AUTH_USER_MODEL = 'account.User'
 SECRET_KEY = '&th5t6+qqez!x*%9_qqts8cx!ed%a4#z$7zv6_ld4&mlyeq8fz'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+if cfg['ENV'] == 'production':
+    DEBUG = False
+else:
+    DEBUG = True
 
-ALLOWED_HOSTS = []
+ADMIN_ENABLED = True
 
+if cfg['ENV'] == 'production':
+    ALLOWED_HOSTS = ['127.0.0.1', APP_DOMAIN]
+    if APP_DOMAIN_ALIAS:
+        ALLOWED_HOSTS.append(APP_DOMAIN_ALIAS)
+else:
+    ALLOWED_HOSTS = ['127.0.0.1', APP_DOMAIN]
+
+AUTH_USER_MODEL = 'account.User'
 
 # Application definition
 
@@ -49,11 +66,14 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'corsheaders'
+    #'rest_framework'
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware', # Must before CommonMiddleware
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -123,6 +143,24 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'debug-log.log'),
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['file'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+    },
+}
 
 # Internationalization
 # https://docs.djangoproject.com/en/2.0/topics/i18n/
@@ -145,3 +183,43 @@ STATIC_URL = '/static/'
 MEDIA_URL = '/media/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'static/')
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media/')
+
+# CORS_ORIGIN_ALLOW_ALL = True
+if cfg['ENV'] == 'production':
+    CORS_ORIGIN_WHITELIST = (
+        '127.0.0.1',
+        APP_DOMAIN,
+        APP_DOMAIN_ALIAS
+    )
+else:
+    CORS_ORIGIN_WHITELIST = (
+        '127.0.0.1',
+        'localhost:4200',
+        APP_DOMAIN
+    )
+
+# ENV -- 'production' or 'local'
+if cfg['ENV'] == 'production':
+    CSRF_COOKIE_DOMAIN = APP_DOMAIN
+    CSRF_TRUSTED_ORIGINS = {APP_DOMAIN, APP_DOMAIN_ALIAS}
+else:
+    CSRF_COOKIE_DOMAIN = APP_DOMAIN
+    CSRF_TRUSTED_ORIGINS = {APP_DOMAIN, 'localhost:4200'}
+
+
+# Store CSRF token in the user's session or cookie
+CSRF_USE_SESSIONS = False
+
+CSRF_COOKIE_SECURE = False
+
+
+PROJECT_ROOT = os.path.abspath(os.path.dirname(__file__))
+
+
+SEND_EMAIL_SUBJECT = 'Contact Us'
+EMAIL_ADDRESS = 'support@yocompute.com'
+EMAIL_BACKEND = "sgbackend.SendGridBackend"
+SENDGRID_API_KEY = cfg['SENDGRID']['API_KEY']
+
+STRIPE_API_KEY = cfg['STRIPE']['API_KEY']
+
