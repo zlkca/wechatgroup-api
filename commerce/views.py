@@ -18,13 +18,14 @@ class WechatGroupView(View):
 
    def post(self, req, *args, **kwargs):
        params = json.loads(req.body)
-       item = WechatGroup()
+       item = WechatGroup(image=req.FILES['file'])
        item.title = params.get('title')
        item.description = params.get('description')
        item.n_subscription = params.get('n_subscription')
        item.rating = params.get('rating')
-       item.qr = params.get('qr')
-       item.image = params.get('image')
+       # item.qr = params.get('qr')
+       # item.image = params.get('image')
+
        item.user = params.get('user')
        item.created = params.get('created')
        item.save()
