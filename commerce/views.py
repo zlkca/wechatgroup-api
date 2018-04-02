@@ -5,15 +5,17 @@ import base64
 from django.http import JsonResponse
 from django.core import serializers
 from django.core.files import File
+from django.db.models import Q, Count, Max
 from django.forms import ModelForm
 from django.views.generic import View
 from django.contrib.auth import get_user_model
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from django.conf import settings
+
 from commerce.models import Category, WechatGroup, QR, Subscription
 from utils import to_json, decode_jwt_token
-from unicodedata import category
+#from unicodedata import category
 
 User = settings.AUTH_USER_MODEL
 
@@ -60,9 +62,18 @@ class CategoryFormView(View):
 
 @method_decorator(csrf_exempt, name='dispatch')
 class WechatGroupListView(View):
+    
     def get(self, req, *args, **kwargs):
+        keyword = req.GET.get('keyword')
+        category_id = req.GET.get('category_id')
+        
         try:
-            items = WechatGroup.objects.all()
+            if keyword:
+                items = WechatGroup.objects.filter(Q(title__icontains=keyword)|Q(description__icontains=keyword)|Q(category__name__icontains=keyword)).order_by('-id')
+            elif category_id:
+                items = WechatGroup.objects.filter(category_id=category_id).order_by('-id')
+            else:
+                items = WechatGroup.objects.filter().order_by('-id')
         except Exception as e:
             return JsonResponse({'data':[]})
         #d = serializers.serialize("json", items, use_natural_foreign_keys=True)
