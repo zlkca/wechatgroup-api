@@ -1,6 +1,7 @@
 from django.conf.urls import url
-from account.views import UserView
+from account.views import LoginView, TokenView
 
 urlpatterns = [
-   url('user', UserView.as_view()),
+   url('login', LoginView.as_view()),
+   url('token', TokenView.as_view()),
 ]

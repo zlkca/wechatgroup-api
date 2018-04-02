@@ -38,6 +38,10 @@ if cfg['ENV'] == 'production':
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = '&th5t6+qqez!x*%9_qqts8cx!ed%a4#z$7zv6_ld4&mlyeq8fz'
 
+JWT_SECRET = cfg["JWT"]["SECRET"]
+JWT_ALGORITHM = cfg["JWT"]["ALGORITHM"]
+JWT_EXPIRY = cfg["JWT"]["EXPIRY"]
+
 # SECURITY WARNING: don't run with debug turned on in production!
 if cfg['ENV'] == 'production':
     DEBUG = False

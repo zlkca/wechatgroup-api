@@ -1,37 +1,184 @@
+import os
 import json
+import base64
+
 from django.http import JsonResponse
 from django.core import serializers
+from django.core.files import File
+from django.forms import ModelForm
 from django.views.generic import View
+from django.contrib.auth import get_user_model
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
-from commerce.models import WechatGroup, Subscription
+from django.conf import settings
+from commerce.models import Category, WechatGroup, QR, Subscription
+from utils import to_json, decode_jwt_token
+from unicodedata import category
+
+User = settings.AUTH_USER_MODEL
+
 
 @method_decorator(csrf_exempt, name='dispatch')
-class WechatGroupView(View):
+class CategoryListView(View):
+    def get(self, req, *args, **kwargs):
+        try:
+            items = Category.objects.all()
+        except Exception as e:
+            return JsonResponse({'data':[]})
+        return JsonResponse({'data':to_json(items)})
+
+@method_decorator(csrf_exempt, name='dispatch')
+class CategoryFormView(View):
+    def get(self, req, *args, **kwargs):
+        ''' get detail
+        '''
+        pid = int(kwargs.get('id'))
+        if pid:
+            try:
+                item = Category.objects.get(id=pid)
+            except Exception as e:
+                return JsonResponse({'data':''})
+        else:
+            return JsonResponse({'data':''})
+
+        return JsonResponse({'data':to_json(item)})
+    
+    def post(self, req, *args, **kwargs):
+        params = json.loads(req.body)
+
+        _id = params.get('id')
+        if _id:
+            item = Category.objects.get(id=_id)
+        else:                    
+            item = Category()
+            
+        item.name = params.get('name')
+        item.description = params.get('description')
+        item.status = params.get('status')
+        item.save()
+        return JsonResponse({'data':to_json(item)})
+
+@method_decorator(csrf_exempt, name='dispatch')
+class WechatGroupListView(View):
+    def get(self, req, *args, **kwargs):
+        try:
+            items = WechatGroup.objects.all()
+        except Exception as e:
+            return JsonResponse({'data':[]})
+        #d = serializers.serialize("json", items, use_natural_foreign_keys=True)
+        return JsonResponse({'data':to_json(items)})
+        
+    
+
+@method_decorator(csrf_exempt, name='dispatch')
+class WechatGroupFormView(View):        
+    def get(self, req, *args, **kwargs):
+        ''' get detail
+        '''
+        pid = int(kwargs.get('id'))
+        if pid:
+            try:
+                item = WechatGroup.objects.select_related('category').get(id=pid)
+            except Exception as e:
+                return JsonResponse({'data':''})
+        else:
+            return JsonResponse({'data':''})
+
+        return JsonResponse({'data':to_json(item)})
+
+    def post(self, req, *args, **kwargs):
+        ''' create item
+        '''
+        params = req.POST
+        authorizaion = req.META['HTTP_AUTHORIZATION']
+        token = authorizaion.replace("Basic ", "")
+        if token:
+            payload = decode_jwt_token(base64.b64decode(token))
+            if payload and payload['data']:
+                try:
+                    user = get_user_model().objects.get(id=req.POST.get('user_id'))
+                except:
+                    user = None
+                try:
+                    category = Category.objects.get(id=req.POST.get('category_id'))
+                except:
+                    category = None
+                    
+                _id = params.get('id')
+                if _id:
+                    item = WechatGroup.objects.get(id=_id)
+                else:                    
+                    item = WechatGroup()
+                    
+                item.title = params.get('title')
+                item.description = params.get('description')
+                item.n_subscription = params.get('n_subscription')
+                item.rating = params.get('rating')
+                item.user = user
+                item.category = category
+                logo = req.FILES.get('logo')
+                if logo:
+                    item.logo.save(logo.name, logo.file, True)
+                item.save()
+                
+                #d = serializers.serialize("json", [item], use_natural_foreign_keys=True)
+                return JsonResponse({'tokenValid': True,'data':to_json(item)})
+        return JsonResponse({'tokenValid':False, 'data':''})
+    
+    def patch(self, req, *args, **kwargs):
+        ''' update item
+        '''
+        params = req.POST
+        authorizaion = req.META.HTTP_AUTHORIZATION
+        token = authorizaion.replace("Basic ", "");
+        if token:
+            payload = decode_jwt_token(token)
+            if payload and payload.data:
+                try:
+                    user = get_user_model().objects.get(id=req.POST.get('user_id'))
+                except:
+                    user = None
+                
+                item = WechatGroup()
+                
+                _id = params.get('id')
+                if _id:
+                    item = WechatGroup.objects.get(id=_id)
+        
+                item.title = params.get('title')
+                item.description = params.get('description')
+                item.n_subscription = params.get('n_subscription')
+                item.rating = params.get('rating')
+                item.user = user
+                item.logo.save(req.FILES['logo'].name, req.FILES['logo'].file, True)
+                item.save()
+                
+                #d = serializers.serialize("json", [item], use_natural_foreign_keys=True)
+                return JsonResponse({'token':token, 'data':to_json(item)})
+        return JsonResponse({'token':'', 'data':''})
+        
+@method_decorator(csrf_exempt, name='dispatch')
+class QRListView(View):
    def get(self, req, *args, **kwargs):
        try:
-           items = WechatGroup.objects.all()
+           items = QR.objects.all()
        except Exception as e:
            return JsonResponse({'data':[]})
-       d = serializers.serialize("json", items, use_natural_foreign_keys=True)
-       return JsonResponse({'data':d})
+       return JsonResponse({'data':to_json(items)})
 
    def post(self, req, *args, **kwargs):
        params = json.loads(req.body)
-       item = WechatGroup(image=req.FILES['file'])
+       item = QR()
        item.title = params.get('title')
-       item.description = params.get('description')
-       item.n_subscription = params.get('n_subscription')
-       item.rating = params.get('rating')
-       # item.qr = params.get('qr')
-       # item.image = params.get('image')
-
-       item.user = params.get('user')
-       item.created = params.get('created')
+       item.image = params.get('image')
+       wechatgroup_id = params.get('wechatgroup_id')
+       try:
+           item.wechatgroup = WechatGroup.objects.get(id=wechatgroup_id)
+       except:
+           item.wechatgroup = None
        item.save()
-       d = serializers.serialize("json", [item], use_natural_foreign_keys=True)
-       return JsonResponse({'data':d})
-
+       return JsonResponse({'data':to_json(item)})
+                        
 @method_decorator(csrf_exempt, name='dispatch')
 class SubscriptionView(View):
    def get(self, req, *args, **kwargs):

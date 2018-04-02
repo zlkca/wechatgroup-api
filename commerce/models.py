@@ -19,32 +19,51 @@ PROFESSIONS = (('FA','Financial advisor'), ('MB', 'Mortgage Broker'), ('AC','Acc
 
 User = settings.AUTH_USER_MODEL
 
-def get_upload_image_path(instance, fname):
-    author_id = '0'
-    product_id = '0'
-    title = instance.title
-    if instance.user:
-        user_id = instance.user.id
+class Category(Model):
+    name = CharField(max_length=64, null=True, blank=True)
+    description = CharField(max_length=500, null=True, blank=True)
+    status = CharField(max_length=16, choices=STATUS, default='active')
 
-    return os.path.join('advertisement', str(user_id), str(title), fname)
+    def __str__(self):
+        return self.name
+
+def get_upload_logo_path(instance, fname):
+    user_id = '0'
+    _id = '0'
+    if instance.id:
+        _id = instance.id
+        if instance.user:
+            user_id = instance.user.id
+    return os.path.join('logo', str(user_id), str(_id), fname)
 
 class WechatGroup(Model):
     title = CharField(max_length=128, null=True, blank = True)
     description = CharField(max_length=800, null=True, blank = True)
     n_subscription = DecimalField(max_digits=10, decimal_places=3, null=True)
     rating = DecimalField(max_digits=10, decimal_places=3, null=True)
-    image = ImageField(upload_to=get_upload_image_path)
+    #logo = CharField(max_length=256, null=True, blank = True)
+    logo = ImageField(upload_to=get_upload_logo_path)
+    category = ForeignKey(Category, null=True, blank=True, db_column='category_id', on_delete=models.CASCADE)
     user = ForeignKey(User, null=True, blank=True, db_column='user_id', on_delete=models.CASCADE)
     created = DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return self.title
 
-    def image_tag(self):
-        return mark_safe('<img style="width:100px;" src="%s" />' % self.image.url)
+    def get_logo_path(self, fname):
+        user_id = '0'
+        product_id = '0'
+        title = self.title
+        if self.user:
+            user_id = self.user.id
 
-    image_tag.short_description = 'Image'
-    image_tag.allow_tags = True
+        return os.path.join('logo', str(user_id), str(title), fname)
+
+    # def image_tag(self):
+    #     return mark_safe('<img style="width:100px;" src="%s" />' % self.logo.url)
+
+    # image_tag.short_description = 'Image'
+    # image_tag.allow_tags = True
 
 def get_upload_qr_path(instance, fname):
     author_id = '0'
@@ -86,7 +105,7 @@ class Subscription(Model):
     updated = DateTimeField(auto_now=True)
 
     def __str__(self):
-        return user.username if user else ip
+        return self.user.username if self.user else self.ip
 
 # class Comment(Model):
 #     body = CharField(max_length=800, null=True, blank=True)
