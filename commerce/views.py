@@ -45,6 +45,13 @@ class CategoryFormView(View):
 
         return JsonResponse({'data':to_json(item)})
     
+    def delete(self, req, *args, **kwargs):
+        pid = int(kwargs.get('id'))
+        if pid:
+            instance = Category.objects.get(id=pid)
+            instance.delete()
+        return JsonResponse({'data':''})
+    
     def post(self, req, *args, **kwargs):
         params = json.loads(req.body)
 
@@ -96,7 +103,14 @@ class WechatGroupFormView(View):
             return JsonResponse({'data':''})
 
         return JsonResponse({'data':to_json(item)})
-
+    
+    def delete(self, req, *args, **kwargs):
+        pid = int(kwargs.get('id'))
+        if pid:
+            instance = WechatGroup.objects.get(id=pid)
+            instance.delete()
+        return JsonResponse({'data':''})
+    
     def post(self, req, *args, **kwargs):
         ''' create item
         '''

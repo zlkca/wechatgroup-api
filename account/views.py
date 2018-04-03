@@ -55,7 +55,7 @@ class LoginView(View):
             if r and r.check_password(password):
                 token = create_jwt_token(r.id).decode('utf-8');
                 r.password = ''
-                return JsonResponse({'token':token, 'data':to_json([r]) })
+                return JsonResponse({'token':token, 'data':to_json(r) })
             else:
                 return JsonResponse({'token':'', 'data':''})
         else:
