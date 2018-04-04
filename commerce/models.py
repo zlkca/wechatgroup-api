@@ -64,9 +64,19 @@ class WechatGroup(Model):
 
     # image_tag.short_description = 'Image'
     # image_tag.allow_tags = True
+def get_upload_wechat_path(instance, fname):
+    return os.path.join('wechat/admin', fname)
 
+class Wechat(Model):
+    title = CharField(max_length=128, null=True, blank = True)
+    description = CharField(max_length=800, null=True, blank = True)
+    logo = ImageField(upload_to=get_upload_wechat_path)
+    created = DateTimeField(auto_now_add=True)
+    def __str__(self):
+        return self.title
+    
 def get_upload_qr_path(instance, fname):
-    author_id = '0'
+    user_id = '0'
     _id = '0'
     if instance.wechatgroup:
         _id = instance.wechatgroup.id

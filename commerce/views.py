@@ -13,7 +13,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from django.conf import settings
 
-from commerce.models import Category, WechatGroup, QR, Subscription
+from commerce.models import Category, WechatGroup, Wechat, QR, Subscription
 from utils import to_json, decode_jwt_token
 #from unicodedata import category
 
@@ -50,7 +50,9 @@ class CategoryFormView(View):
         if pid:
             instance = Category.objects.get(id=pid)
             instance.delete()
-        return JsonResponse({'data':''})
+            items = Category.objects.filter().order_by('-id')
+            return JsonResponse({'data':to_json(items)})
+        return JsonResponse({'data':[]})
     
     def post(self, req, *args, **kwargs):
         params = json.loads(req.body)
@@ -109,7 +111,9 @@ class WechatGroupFormView(View):
         if pid:
             instance = WechatGroup.objects.get(id=pid)
             instance.delete()
-        return JsonResponse({'data':''})
+            items = WechatGroup.objects.filter().order_by('-id')
+            return JsonResponse({'data':to_json(items)})
+        return JsonResponse({'data':[]})
     
     def post(self, req, *args, **kwargs):
         ''' create item
@@ -150,37 +154,57 @@ class WechatGroupFormView(View):
                 return JsonResponse({'tokenValid': True,'data':to_json(item)})
         return JsonResponse({'tokenValid':False, 'data':''})
     
-    def patch(self, req, *args, **kwargs):
-        ''' update item
+@method_decorator(csrf_exempt, name='dispatch')
+class WechatFormView(View):        
+    def get(self, req, *args, **kwargs):
+        ''' get detail
+        '''
+        pid = int(kwargs.get('id'))
+        if pid:
+            try:
+                item = Wechat.objects.get(id=pid)
+            except Exception as e:
+                return JsonResponse({'data':''})
+        else:
+            return JsonResponse({'data':''})
+
+        return JsonResponse({'data':to_json(item)})
+    
+    def delete(self, req, *args, **kwargs):
+        pid = int(kwargs.get('id'))
+        if pid:
+            instance = Wechat.objects.get(id=pid)
+            instance.delete()
+            items = Wechat.objects.filter().order_by('-id')
+            return JsonResponse({'data':to_json(items)})
+        return JsonResponse({'data':[]})
+    
+    def post(self, req, *args, **kwargs):
+        ''' create item
         '''
         params = req.POST
-        authorizaion = req.META.HTTP_AUTHORIZATION
-        token = authorizaion.replace("Basic ", "");
+        authorizaion = req.META['HTTP_AUTHORIZATION']
+        token = authorizaion.replace("Basic ", "")
         if token:
-            payload = decode_jwt_token(token)
-            if payload and payload.data:
-                try:
-                    user = get_user_model().objects.get(id=req.POST.get('user_id'))
-                except:
-                    user = None
-                
-                item = WechatGroup()
-                
+            payload = decode_jwt_token(base64.b64decode(token))
+            if payload and payload['data']:
+                    
                 _id = params.get('id')
                 if _id:
-                    item = WechatGroup.objects.get(id=_id)
-        
+                    item = Wechat.objects.get(id=_id)
+                else:                    
+                    item = Wechat()
+                    
                 item.title = params.get('title')
                 item.description = params.get('description')
-                item.n_subscription = params.get('n_subscription')
-                item.rating = params.get('rating')
-                item.user = user
-                item.logo.save(req.FILES['logo'].name, req.FILES['logo'].file, True)
+                logo = req.FILES.get('logo')
+                if logo:
+                    item.logo.save(logo.name, logo.file, True)
                 item.save()
                 
                 #d = serializers.serialize("json", [item], use_natural_foreign_keys=True)
-                return JsonResponse({'token':token, 'data':to_json(item)})
-        return JsonResponse({'token':'', 'data':''})
+                return JsonResponse({'tokenValid': True,'data':to_json(item)})
+        return JsonResponse({'tokenValid':False, 'data':''})
         
 @method_decorator(csrf_exempt, name='dispatch')
 class QRListView(View):
