@@ -283,9 +283,14 @@ class ImageDefaultTitleFormView(View):
             payload = decode_jwt_token(base64.b64decode(token))
             if payload and payload['data']:                    
                 _id = params.get('id')
+                item = None
                 if _id:
-                    item = ImageDefaultTitle.objects.get(id=_id)
-                else:                    
+                    try:
+                        item = ImageDefaultTitle.objects.get(id=_id)
+                    except:
+                        pass
+                    
+                if not item:                    
                     item = ImageDefaultTitle()
                     
                 item.name0 = params.get('name0')
