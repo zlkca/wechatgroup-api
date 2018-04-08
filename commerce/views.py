@@ -156,8 +156,14 @@ class WechatGroupFormView(View):
 
                 if _id:
                     qrs = QR.objects.filter(wechatgroup_id=_id)
-                    for qr in qrs:
-                        self.saveQR(qr, req, params, item)
+                    if qrs.count() == 0:
+                        for i in range(4):
+                            qr = QR()
+                            qr.index = i
+                            self.saveQR(qr, req, params, item)
+                    else:
+                        for qr in qrs:
+                            self.saveQR(qr, req, params, item)
                 else:
                     for i in range(4):
                         qr = QR()
