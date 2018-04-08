@@ -22,7 +22,8 @@ class Category(Model):
     name = CharField(max_length=64, null=True, blank=True)
     description = CharField(max_length=500, null=True, blank=True)
     status = CharField(max_length=16, choices=STATUS, default='active')
-
+    updated = DateTimeField(auto_now=True)
+    
     def __str__(self):
         return self.name
 
@@ -89,7 +90,8 @@ class WechatGroup(Model):
     category = ForeignKey(Category, null=True, blank=True, db_column='category_id', on_delete=models.CASCADE)
     user = ForeignKey(User, null=True, blank=True, db_column='user_id', on_delete=models.CASCADE)
     created = DateTimeField(auto_now_add=True)
-
+    updated = DateTimeField(auto_now=True)
+    
     def __str__(self):
         return self.title
 

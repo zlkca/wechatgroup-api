@@ -25,7 +25,7 @@ User = settings.AUTH_USER_MODEL
 class CategoryListView(View):
     def get(self, req, *args, **kwargs):
         try:
-            items = Category.objects.all()
+            items = Category.objects.all().order_by('-updated')
         except Exception as e:
             return JsonResponse({'data':[]})
         return JsonResponse({'data':to_json(items)})
@@ -79,11 +79,11 @@ class WechatGroupListView(View):
         
         try:
             if keyword:
-                items = WechatGroup.objects.filter(Q(title__icontains=keyword)|Q(description__icontains=keyword)|Q(category__name__icontains=keyword)).order_by('-id')
+                items = WechatGroup.objects.filter(Q(title__icontains=keyword)|Q(description__icontains=keyword)|Q(category__name__icontains=keyword)).order_by('-updated')
             elif category_id:
-                items = WechatGroup.objects.filter(category_id=category_id).order_by('-id')
+                items = WechatGroup.objects.filter(category_id=category_id).order_by('-updated')
             else:
-                items = WechatGroup.objects.filter().order_by('-id')
+                items = WechatGroup.objects.filter().order_by('-updated')
         except Exception as e:
             return JsonResponse({'data':[]})
         #d = serializers.serialize("json", items, use_natural_foreign_keys=True)
