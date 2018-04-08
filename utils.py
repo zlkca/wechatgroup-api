@@ -26,7 +26,11 @@ def obj_to_json(d, related_lookup=False):
                 else:
                     item[key] = {'id': v.id }
             elif isinstance(field, ImageField):
-                item[key] = v.name if v else None
+                #item[key] = v.name if v else None
+                if v and v.name:
+                    item[key] = { 'data':v.name, 'file':'' }
+                else:
+                    item[key] = { 'data':'', 'file':'' }
             else:
                 item[key] = v
 #     # version 1
@@ -40,12 +44,14 @@ def obj_to_json(d, related_lookup=False):
     return item
 
 def to_json(a):
-    if isinstance(a, QuerySet) or isinstance(a, list):
+    if isinstance(a, QuerySet) and a.exists() or isinstance(a, list):
         r = []
         for d in a:
             item = obj_to_json(d, related_lookup=False)
             r.append(item)
         return r
+    elif isinstance(a, QuerySet) and a.count()==0:
+        return []
     else:
         return obj_to_json(a, related_lookup=True)
 

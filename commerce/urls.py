@@ -1,5 +1,5 @@
 from django.conf.urls import url
-from commerce.views import WechatGroupListView, WechatGroupFormView, WechatFormView, CategoryListView, CategoryFormView, QRListView, SubscriptionView
+from commerce.views import WechatGroupListView, WechatGroupFormView, WechatFormView, ImageDefaultTitleFormView, CategoryListView, CategoryFormView, SubscriptionView
 
 urlpatterns = [
     url('categories', CategoryListView.as_view()),
@@ -10,6 +10,8 @@ urlpatterns = [
     url('wechatgroup', WechatGroupFormView.as_view()),
     url('wechat/(?P<id>[0-9]+)', WechatFormView.as_view()),
     url('wechat', WechatFormView.as_view()),
-    url('qr', QRListView.as_view()),
+    url('image-default-title/(?P<id>[0-9]+)', ImageDefaultTitleFormView.as_view()),
+    url('image-default-title', ImageDefaultTitleFormView.as_view()),
+#     url('qr', QRFormView.as_view()),
     url('subscription', SubscriptionView.as_view()),
 ]

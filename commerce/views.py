@@ -13,7 +13,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from django.conf import settings
 
-from commerce.models import Category, WechatGroup, Wechat, QR, Subscription
+from commerce.models import Category, WechatGroup, Wechat, ImageDefaultTitle, QR, Subscription
 from utils import to_json, decode_jwt_token
 #from unicodedata import category
 
@@ -103,8 +103,11 @@ class WechatGroupFormView(View):
                 return JsonResponse({'data':''})
         else:
             return JsonResponse({'data':''})
-
-        return JsonResponse({'data':to_json(item)})
+        
+        qrs = QR.objects.filter(wechatgroup_id=item.id)
+        wechatgroup = to_json(item)
+        wechatgroup['qrs'] = to_json(qrs)
+        return JsonResponse({'data':wechatgroup})
     
     def delete(self, req, *args, **kwargs):
         pid = int(kwargs.get('id'))
@@ -120,7 +123,7 @@ class WechatGroupFormView(View):
         '''
         params = req.POST
         authorizaion = req.META['HTTP_AUTHORIZATION']
-        token = authorizaion.replace("Basic ", "")
+        token = authorizaion.replace("Bearer ", "")
         if token:
             payload = decode_jwt_token(base64.b64decode(token))
             if payload and payload['data']:
@@ -134,26 +137,73 @@ class WechatGroupFormView(View):
                     category = None
                     
                 _id = params.get('id')
+                qrs = None
                 if _id:
                     item = WechatGroup.objects.get(id=_id)
                 else:                    
                     item = WechatGroup()
-                    
+
                 item.title = params.get('title')
                 item.description = params.get('description')
                 item.n_subscription = params.get('n_subscription')
                 item.rating = params.get('rating')
                 item.user = user
                 item.category = category
-                logo = req.FILES.get('logo')
-                if logo:
-                    item.logo.save(logo.name, logo.file, True)
+
                 item.save()
+
+                if _id:
+                    qrs = QR.objects.filter(wechatgroup_id=_id)
+                    for qr in qrs:
+                        self.saveQR(qr, req, params, item)
+                else:
+                    for i in range(4):
+                        qr = QR()
+                        qr.index = i
+                        self.saveQR(qr, req, params, item)
+
                 
+                qrs = QR.objects.filter(wechatgroup_id=item.id)
+                item.logo = self.getDefaultLogo(qrs)
+                item.save()
+
+                wechatgroup = to_json(item)
+                wechatgroup['qrs'] = to_json(qrs)
                 #d = serializers.serialize("json", [item], use_natural_foreign_keys=True)
                 return JsonResponse({'tokenValid': True,'data':to_json(item)})
         return JsonResponse({'tokenValid':False, 'data':''})
     
+
+    def getDefaultLogo(self, qrs):
+        if qrs[0].image.name:
+            return qrs[0].image.name
+        elif qrs[1].image.name:
+            return qrs[1].image.name;
+        elif qrs[2].image.name:
+            return qrs[2].image.name;
+        elif qrs[3].image.name:
+            return qrs[3].image.name;
+        else:
+            return ''
+
+
+    def saveQR(self, qr, req, params, wechatgroup):
+        i = qr.index
+        qr.title = params.get('title%s'%i)
+        image = req.FILES.get('image%s'%i)
+        qr.wechatgroup = wechatgroup
+        if image:
+            qr.image.save(image.name, image.file, True)
+        else:
+            if params.get('image_status%s'%i) == 'clear':
+                try:
+                    os.remove(qr.image.path)
+                except:
+                    print('remove image failed')
+                qr.image.delete()
+            
+        qr.save()
+
 @method_decorator(csrf_exempt, name='dispatch')
 class WechatFormView(View):        
     def get(self, req, *args, **kwargs):
@@ -184,7 +234,7 @@ class WechatFormView(View):
         '''
         params = req.POST
         authorizaion = req.META['HTTP_AUTHORIZATION']
-        token = authorizaion.replace("Basic ", "")
+        token = authorizaion.replace("Bearer ", "")
         if token:
             payload = decode_jwt_token(base64.b64decode(token))
             if payload and payload['data']:
@@ -205,9 +255,53 @@ class WechatFormView(View):
                 #d = serializers.serialize("json", [item], use_natural_foreign_keys=True)
                 return JsonResponse({'tokenValid': True,'data':to_json(item)})
         return JsonResponse({'tokenValid':False, 'data':''})
+
+@method_decorator(csrf_exempt, name='dispatch')
+class ImageDefaultTitleFormView(View):        
+    def get(self, req, *args, **kwargs):
+        ''' get detail
+        '''
+        pid = int(kwargs.get('id'))
+        if pid:
+            try:
+                item = ImageDefaultTitle.objects.get(id=pid)
+            except Exception as e:
+                return JsonResponse({'data':''})
+        else:
+            return JsonResponse({'data':''})
+
+        return JsonResponse({'data':to_json(item)})
+    
+    def post(self, req, *args, **kwargs):
+        ''' create item
+        '''
+        params = req.body.decode('utf8').replace("'", '"')#req.POST
+        params = json.loads(params)
+        authorizaion = req.META['HTTP_AUTHORIZATION']
+        token = authorizaion.replace("Bearer ", "")
+        if token:
+            payload = decode_jwt_token(base64.b64decode(token))
+            if payload and payload['data']:                    
+                _id = params.get('id')
+                if _id:
+                    item = ImageDefaultTitle.objects.get(id=_id)
+                else:                    
+                    item = ImageDefaultTitle()
+                    
+                item.name0 = params.get('name0')
+                item.name1 = params.get('name1')
+                item.name2 = params.get('name2')
+                item.name3 = params.get('name3')
+                
+                item.save()
+                
+                #d = serializers.serialize("json", [item], use_natural_foreign_keys=True)
+                return JsonResponse({'tokenValid': True,'data':to_json(item)})
+        return JsonResponse({'tokenValid':False, 'data':''})
+ 
         
 @method_decorator(csrf_exempt, name='dispatch')
-class QRListView(View):
+class QRFormView(View):
    def get(self, req, *args, **kwargs):
        try:
            items = QR.objects.all()
