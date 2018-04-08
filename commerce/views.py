@@ -6,6 +6,7 @@ from django.http import JsonResponse
 from django.core import serializers
 from django.core.files import File
 from django.db.models import Q, Count, Max
+
 from django.forms import ModelForm
 from django.views.generic import View
 from django.contrib.auth import get_user_model
@@ -107,6 +108,7 @@ class WechatGroupFormView(View):
         qrs = QR.objects.filter(wechatgroup_id=item.id)
         wechatgroup = to_json(item)
         wechatgroup['qrs'] = to_json(qrs)
+
         return JsonResponse({'data':wechatgroup})
     
     def delete(self, req, *args, **kwargs):
@@ -161,7 +163,6 @@ class WechatGroupFormView(View):
                         qr = QR()
                         qr.index = i
                         self.saveQR(qr, req, params, item)
-
                 
                 qrs = QR.objects.filter(wechatgroup_id=item.id)
                 item.logo = self.getDefaultLogo(qrs)
