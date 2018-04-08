@@ -176,16 +176,19 @@ class WechatGroupFormView(View):
     
 
     def getDefaultLogo(self, qrs):
-        if qrs[0].image.name:
-            return qrs[0].image.name
-        elif qrs[1].image.name:
-            return qrs[1].image.name;
-        elif qrs[2].image.name:
-            return qrs[2].image.name;
-        elif qrs[3].image.name:
-            return qrs[3].image.name;
-        else:
+        if qrs.count() == 0:
             return ''
+        else:
+            if qrs[0].image.name:
+                return qrs[0].image.name
+            elif qrs[1].image.name:
+                return qrs[1].image.name;
+            elif qrs[2].image.name:
+                return qrs[2].image.name;
+            elif qrs[3].image.name:
+                return qrs[3].image.name;
+            else:
+                return ''
 
 
     def saveQR(self, qr, req, params, wechatgroup):
@@ -196,7 +199,7 @@ class WechatGroupFormView(View):
         if image:
             qr.image.save(image.name, image.file, True)
         else:
-            if params.get('image_status%s'%i) == 'clear':
+            if params.get('image_status%s'%i) == 'clear' and qr.image:
                 try:
                     os.remove(qr.image.path)
                 except:
