@@ -20,6 +20,15 @@ from utils import to_json, decode_jwt_token
 
 User = settings.AUTH_USER_MODEL
 
+def valid_token(req):
+    authorizaion = req.META['HTTP_AUTHORIZATION']
+    token = authorizaion.replace("Bearer ", "")
+    if token:
+        s = base64.b64decode(token).decode("utf-8").replace('"', '')
+        payload = decode_jwt_token(s)
+        if payload and payload['data']:
+            return True
+    return False
 
 @method_decorator(csrf_exempt, name='dispatch')
 class CategoryListView(View):
@@ -124,60 +133,56 @@ class WechatGroupFormView(View):
         ''' create item
         '''
         params = req.POST
-        authorizaion = req.META['HTTP_AUTHORIZATION']
-        token = authorizaion.replace("Bearer ", "")
-        if token:
-            payload = decode_jwt_token(base64.b64decode(token))
-            if payload and payload['data']:
-                try:
-                    user = get_user_model().objects.get(id=req.POST.get('user_id'))
-                except:
-                    user = None
-                try:
-                    category = Category.objects.get(id=req.POST.get('category_id'))
-                except:
-                    category = None
-                    
-                _id = params.get('id')
-                qrs = None
-                if _id:
-                    item = WechatGroup.objects.get(id=_id)
-                else:                    
-                    item = WechatGroup()
+        if valid_token(req):
+            try:
+                user = get_user_model().objects.get(id=req.POST.get('user_id'))
+            except:
+                user = None
+            try:
+                category = Category.objects.get(id=req.POST.get('category_id'))
+            except:
+                category = None
+                
+            _id = params.get('id')
+            qrs = None
+            if _id:
+                item = WechatGroup.objects.get(id=_id)
+            else:                    
+                item = WechatGroup()
 
-                item.title = params.get('title')
-                item.description = params.get('description')
-                item.n_subscription = params.get('n_subscription')
-                item.rating = params.get('rating')
-                item.user = user
-                item.category = category
+            item.title = params.get('title')
+            item.description = params.get('description')
+            item.n_subscription = params.get('n_subscription')
+            item.rating = params.get('rating')
+            item.user = user
+            item.category = category
 
-                item.save()
+            item.save()
 
-                if _id:
-                    qrs = QR.objects.filter(wechatgroup_id=_id)
-                    if qrs.count() == 0:
-                        for i in range(4):
-                            qr = QR()
-                            qr.index = i
-                            self.saveQR(qr, req, params, item)
-                    else:
-                        for qr in qrs:
-                            self.saveQR(qr, req, params, item)
-                else:
+            if _id:
+                qrs = QR.objects.filter(wechatgroup_id=_id)
+                if qrs.count() == 0:
                     for i in range(4):
                         qr = QR()
                         qr.index = i
                         self.saveQR(qr, req, params, item)
-                
-                qrs = QR.objects.filter(wechatgroup_id=item.id)
-                item.logo = self.getDefaultLogo(qrs)
-                item.save()
+                else:
+                    for qr in qrs:
+                        self.saveQR(qr, req, params, item)
+            else:
+                for i in range(4):
+                    qr = QR()
+                    qr.index = i
+                    self.saveQR(qr, req, params, item)
+            
+            qrs = QR.objects.filter(wechatgroup_id=item.id)
+            item.logo = self.getDefaultLogo(qrs)
+            item.save()
 
-                wechatgroup = to_json(item)
-                wechatgroup['qrs'] = to_json(qrs)
-                #d = serializers.serialize("json", [item], use_natural_foreign_keys=True)
-                return JsonResponse({'tokenValid': True,'data':to_json(item)})
+            wechatgroup = to_json(item)
+            wechatgroup['qrs'] = to_json(qrs)
+            #d = serializers.serialize("json", [item], use_natural_foreign_keys=True)
+            return JsonResponse({'tokenValid': True,'data':to_json(item)})
         return JsonResponse({'tokenValid':False, 'data':''})
     
 
