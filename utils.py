@@ -24,7 +24,8 @@ def obj_to_json(d, related_lookup=False):
                 if related_lookup:
                     item[key] = obj_to_json(v)
                 else:
-                    item[key] = {'id': v.id }
+                    if v and v.id:
+                        item[key] = {'id': v.id }
             elif isinstance(field, ImageField):
                 #item[key] = v.name if v else None
                 if v and v.name:
