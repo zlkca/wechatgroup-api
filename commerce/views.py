@@ -190,13 +190,13 @@ class WechatGroupFormView(View):
         if qrs.count() == 0:
             return ''
         else:
-            if qrs[0].image.name:
+            if qrs.count()>0 and qrs[0].image.name:
                 return qrs[0].image.name
-            elif qrs[1].image.name:
+            elif qrs.count()>1 and qrs[1].image.name:
                 return qrs[1].image.name;
-            elif qrs[2].image.name:
+            elif qrs.count()>2 and qrs[2].image.name:
                 return qrs[2].image.name;
-            elif qrs[3].image.name:
+            elif qrs.count()>3 and qrs[3].image.name:
                 return qrs[3].image.name;
             else:
                 return ''
